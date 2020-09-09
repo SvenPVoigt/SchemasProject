@@ -24,6 +24,11 @@ schema_links = [
 schemas = dict()
 
 for i, slink in enumerate(schema_links):
+    if i%10 == 0:
+        print('%d/%d'%(i+1,len(schema_links)))
+    if i > 100:
+        break
+
     schemas[slink[1:]] = {'props': []}
 
     soup = BeautifulSoup(requests.get(path%slink).text, 'html.parser')
@@ -31,13 +36,14 @@ for i, slink in enumerate(schema_links):
     props = props.find_all("tr", {"resource": True})
 
     for j, prop in enumerate(props):
-        propName = prop.find('th', {'class': 'prop-nam'}).text.strip()
-        propType = prop.find('td', {'class': 'prop-ect'}).text.strip()
-        propDesc = prop.find('td', {'class': 'prop-desc'}).text.strip()
+        propName = prop.find('th', {'class': 'prop-nam'}).text.strip().replace('\n', '')
+        propType = prop.find('td', {'class': 'prop-ect'}).text.strip().replace('\n', '')
+        propDesc = prop.find('td', {'class': 'prop-desc'}).text.strip().replace('\n', '')
+        propDesc = propDesc.replace('"', '\\"')
 
         schemas[slink[1:]]['props'].append([propName, propType, propDesc])
 
-    break
+    # break
 
 
 # Write the schemas to pydantic classes
@@ -85,7 +91,7 @@ def convertType(propType):
 
     else:
         if propType in schemas:
-            return type_map.setdefault(propType, propType)
+            return "'%s'"%type_map.setdefault(propType, propType)
         else:
             return type_map.setdefault(propType, 'str')
 
@@ -112,9 +118,16 @@ for key, val in schemas.items():
     with open('test.py', 'a') as f:
         f.write(classStr)
 
-    break
+    # break
 
 
-from test import Thing
+from pydantic import BaseModel
+from inspect import isclass
+import test
 
-print(Thing.schema_json(indent=2))
+for key, val in vars(test).items():
+    if isclass(val):
+        if issubclass(val, BaseModel):
+            val.update_forward_refs()
+
+print(test.Thing.schema_json(indent=2))
