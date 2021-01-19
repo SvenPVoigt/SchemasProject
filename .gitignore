@@ -1,3 +1,7 @@
+# Mac and Windows Shit
+.DS_Store
+thumbs.db
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
